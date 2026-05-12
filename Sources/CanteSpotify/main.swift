@@ -3,7 +3,8 @@ import AppKit
 import Foundation
 
 struct OverlayMessage: Encodable {
-    let current: String
+    let status: String?
+    let current: String?
     let next: String?
 }
 
@@ -50,6 +51,7 @@ struct CanteSpotify {
         var lines: [LyricLine] = []
         var lastStatusMessage: String?
         var lastPrintedFrame: LyricFrame?
+        var isShowingLoading = false
 
         while true {
             do {
@@ -60,6 +62,8 @@ struct CanteSpotify {
                     currentTrackKey = snapshot.trackKey
                     lastPrintedFrame = nil
                     lines = []
+                    printLoadingMessage()
+                    isShowingLoading = true
 
                     fputs("Spotify: \(snapshot.artist) - \(snapshot.track)\n", stderr)
 
@@ -81,17 +85,32 @@ struct CanteSpotify {
                     fputs("Spotify: \(snapshot.state) @ \(String(format: "%.2f", snapshot.position))s\n", stderr)
                 }
 
-                if snapshot.isPlaying,
-                   let currentFrame = LyricTimeline.currentFrame(in: lines, at: snapshot.position),
+                guard snapshot.isPlaying else {
+                    if !isShowingLoading {
+                        printLoadingMessage()
+                        isShowingLoading = true
+                    }
+
+                    try? await Task.sleep(nanoseconds: UInt64(pollInterval * 1_000_000_000))
+                    continue
+                }
+
+                if let currentFrame = LyricTimeline.currentFrame(in: lines, at: snapshot.position),
                    currentFrame != lastPrintedFrame {
                     printOverlayMessage(
                         current: currentFrame.current.text,
                         next: currentFrame.next?.text
                     )
                     lastPrintedFrame = currentFrame
+                    isShowingLoading = false
                 }
             } catch {
                 let message = "cante-spotify: \(error.localizedDescription)"
+
+                if !isShowingLoading {
+                    printLoadingMessage()
+                    isShowingLoading = true
+                }
 
                 if message != lastStatusMessage {
                     fputs("\(message)\n", stderr)
@@ -128,12 +147,16 @@ enum SpotifyReader {
 
         let script = """
         tell application "Spotify"
+          set playbackState to player state as string
+          if playbackState is "stopped" then
+            return playbackState & ASCII character 31 & "" & ASCII character 31 & "" & ASCII character 31 & "" & ASCII character 31 & "0" & ASCII character 31 & "0"
+          end if
+
           set trackName to name of current track
           set artistName to artist of current track
           set albumName to album of current track
           set durationSeconds to (duration of current track) / 1000
           set positionSeconds to player position
-          set playbackState to player state as string
           return playbackState & ASCII character 31 & trackName & ASCII character 31 & artistName & ASCII character 31 & albumName & ASCII character 31 & durationSeconds & ASCII character 31 & positionSeconds
         end tell
         """
@@ -189,13 +212,21 @@ enum SpotifyReader {
 }
 
 func printOverlayMessage(current: String, next: String?) {
-    let message = OverlayMessage(current: current, next: next)
+    let message = OverlayMessage(status: nil, current: current, next: next)
+    printMessage(message)
+}
+
+func printLoadingMessage() {
+    printMessage(OverlayMessage(status: "loading", current: nil, next: nil))
+}
+
+func printMessage(_ message: OverlayMessage) {
 
     if let data = try? JSONEncoder().encode(message),
        let encoded = String(data: data, encoding: .utf8) {
         Swift.print(encoded)
     } else {
-        Swift.print(current)
+        Swift.print("Cante")
     }
 
     Darwin.fflush(stdout)

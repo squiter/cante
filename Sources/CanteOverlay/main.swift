@@ -2,19 +2,23 @@ import AppKit
 import Foundation
 
 struct OverlayMessage: Decodable {
-    let current: String
+    let status: String?
+    let current: String?
     let next: String?
 }
 
 final class LyricsView: NSVisualEffectView {
     private let textLabel = NSTextField(labelWithString: "Cante")
-    private let subtitleLabel = NSTextField(labelWithString: "Waiting for lyrics on stdin...")
+    private let subtitleLabel = NSTextField(labelWithString: "Loading your lyrics")
+    private var loadingTimer: Timer?
+    private var loadingStep = 0
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         configureView()
         configureLabels()
         configureLayout()
+        startLoading()
     }
 
     @available(*, unavailable)
@@ -23,8 +27,31 @@ final class LyricsView: NSVisualEffectView {
     }
 
     func updateText(current: String, next: String?) {
+        stopLoading()
         textLabel.stringValue = current.isEmpty ? " " : current
         subtitleLabel.stringValue = next?.isEmpty == false ? next ?? " " : " "
+    }
+
+    func startLoading() {
+        textLabel.stringValue = "Cante"
+        updateLoadingText()
+
+        guard loadingTimer == nil else {
+            return
+        }
+
+        let timer = Timer(timeInterval: 0.45, repeats: true) { [weak self] _ in
+            self?.advanceLoadingText()
+        }
+
+        RunLoop.main.add(timer, forMode: .common)
+        loadingTimer = timer
+    }
+
+    func stopLoading() {
+        loadingTimer?.invalidate()
+        loadingTimer = nil
+        loadingStep = 0
     }
 
     private func configureView() {
@@ -66,6 +93,15 @@ final class LyricsView: NSVisualEffectView {
             subtitleLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -18)
         ])
     }
+
+    private func advanceLoadingText() {
+        loadingStep = (loadingStep + 1) % 4
+        updateLoadingText()
+    }
+
+    private func updateLoadingText() {
+        subtitleLabel.stringValue = "Loading your lyrics" + String(repeating: ".", count: loadingStep)
+    }
 }
 
 final class OverlayController: NSObject, NSApplicationDelegate {
@@ -84,6 +120,7 @@ final class OverlayController: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        lyricsView.stopLoading()
         inputReader.stop()
         OverlayRuntimeControl.removePID()
     }
@@ -148,7 +185,12 @@ final class OverlayController: NSObject, NSApplicationDelegate {
             return
         }
 
-        lyricsView.updateText(current: message.current, next: message.next)
+        if message.status == "loading" {
+            lyricsView.startLoading()
+            return
+        }
+
+        lyricsView.updateText(current: message.current ?? "", next: message.next)
     }
 }
 
