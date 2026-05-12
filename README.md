@@ -14,6 +14,14 @@ swift run cante-overlay
 
 Then type a line and press Return. Each new line replaces the overlay text.
 
+Stop a running overlay from another terminal with:
+
+```sh
+.build/debug/cante-overlay --stop
+```
+
+`Ctrl-C` also works when the overlay is attached to your current terminal session.
+
 You can also pipe timed text into it:
 
 ```sh

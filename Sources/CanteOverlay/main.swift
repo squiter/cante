@@ -68,11 +68,18 @@ final class OverlayController: NSObject, NSApplicationDelegate {
     private let inputReader = StandardInputReader(
         logsLines: CommandLine.arguments.contains("--debug-stdin")
     )
+    private let signalController = SignalController()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        signalController.start()
         createOverlayWindow()
         startReadingStandardInput()
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        inputReader.stop()
+        OverlayRuntimeControl.removePID()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -158,6 +165,10 @@ final class StandardInputReader {
         }
     }
 
+    func stop() {
+        input.readabilityHandler = nil
+    }
+
     private func emitCompleteLines(onLine: (String) -> Void) {
         while let newline = buffer.firstIndex(of: 10) {
             let lineData = buffer[..<newline]
@@ -187,7 +198,67 @@ final class StandardInputReader {
     }
 }
 
+final class SignalController {
+    private var sources: [DispatchSourceSignal] = []
+
+    func start() {
+        observe(SIGINT)
+        observe(SIGTERM)
+    }
+
+    private func observe(_ signalNumber: Int32) {
+        signal(signalNumber, SIG_IGN)
+
+        let source = DispatchSource.makeSignalSource(signal: signalNumber, queue: .main)
+        source.setEventHandler {
+            NSApp.terminate(nil)
+        }
+        source.resume()
+        sources.append(source)
+    }
+}
+
+enum OverlayRuntimeControl {
+    private static let pidFileURL = URL(fileURLWithPath: "/tmp/cante-overlay.pid")
+
+    static func stopRunningOverlay() {
+        guard let contents = try? String(contentsOf: pidFileURL, encoding: .utf8),
+              let pid = pid_t(contents.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+            fputs("cante-overlay: no running overlay pid found\n", stderr)
+            return
+        }
+
+        if kill(pid, SIGTERM) == 0 {
+            removePID()
+            fputs("cante-overlay: stopped overlay process \(pid)\n", stderr)
+            return
+        }
+
+        if errno == ESRCH {
+            removePID()
+            fputs("cante-overlay: removed stale pid file for process \(pid)\n", stderr)
+        } else {
+            fputs("cante-overlay: failed to stop process \(pid): errno \(errno)\n", stderr)
+        }
+    }
+
+    static func writePID() {
+        let pid = ProcessInfo.processInfo.processIdentifier
+        try? "\(pid)\n".write(to: pidFileURL, atomically: true, encoding: .utf8)
+    }
+
+    static func removePID() {
+        try? FileManager.default.removeItem(at: pidFileURL)
+    }
+}
+
+if CommandLine.arguments.contains("--stop") {
+    OverlayRuntimeControl.stopRunningOverlay()
+    exit(0)
+}
+
 let app = NSApplication.shared
 let delegate = OverlayController()
 app.delegate = delegate
+OverlayRuntimeControl.writePID()
 app.run()
