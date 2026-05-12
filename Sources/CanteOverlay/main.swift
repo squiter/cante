@@ -135,6 +135,10 @@ final class LyricsView: NSVisualEffectView {
         NSApp.terminate(nil)
     }
 
+    override func mouseDown(with event: NSEvent) {
+        window?.performDrag(with: event)
+    }
+
     private func cancelDim() {
         dimTimer?.invalidate()
         dimTimer = nil
@@ -207,6 +211,7 @@ final class OverlayController: NSObject, NSApplicationDelegate {
         window.isOpaque = false
         window.hasShadow = false
         window.ignoresMouseEvents = CommandLine.arguments.contains("--click-through")
+        window.isMovableByWindowBackground = true
         window.level = .screenSaver
         window.collectionBehavior = [
             .canJoinAllSpaces,
