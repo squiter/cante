@@ -45,9 +45,9 @@ You can also pipe timed text into it:
 
 ```sh
 while true; do
-  echo "Don't get any big ideas"
+  echo "You want people to love you"
   sleep 2
-  echo "They're not gonna happen"
+  echo "It's encoded in your greed"
   sleep 2
 done | swift run cante-overlay
 ```
@@ -57,26 +57,26 @@ done | swift run cante-overlay
 The second CLI fetches synced lyrics from LRCLIB and prints each line according to its LRC timestamp:
 
 ```sh
-swift run cante-lyrics --track "Nude" --artist "Radiohead"
+swift run cante-lyrics --track "ERROR" --artist "The Warning"
 ```
 
 Pipe it into the overlay:
 
 ```sh
 swift build
-swift run cante-lyrics --track "Nude" --artist "Radiohead" | .build/debug/cante-overlay
+swift run cante-lyrics --track "ERROR" --artist "The Warning" | .build/debug/cante-overlay
 ```
 
 This does not know Spotify playback position yet. It treats command start as song start, which is enough to validate timestamp parsing and overlay updates. For faster visual testing, skip directly to the first lyric:
 
 ```sh
-swift run cante-lyrics --track "Nude" --artist "Radiohead" --skip-intro true | .build/debug/cante-overlay
+swift run cante-lyrics --track "ERROR" --artist "The Warning" --skip-intro true | .build/debug/cante-overlay
 ```
 
 If lyrics are visible in the terminal but not in the overlay, run the overlay with stdin logging:
 
 ```sh
-swift run cante-lyrics --track "Nude" --artist "Radiohead" --skip-intro true | .build/debug/cante-overlay --debug-stdin
+swift run cante-lyrics --track "ERROR" --artist "The Warning" --skip-intro true | .build/debug/cante-overlay --debug-stdin
 ```
 
 ## Spotify Sync Prototype
