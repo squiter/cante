@@ -52,6 +52,44 @@ while true; do
 done | swift run cante-overlay
 ```
 
+## Teleprompter Mode
+
+Cante can also work as a lightweight teleprompter because the overlay reads from standard input. The simplest format is one prompt line per line:
+
+```text
+Welcome everyone, and thanks for joining.
+Today I want to show what Cante can do.
+Let's start with the live desktop overlay.
+```
+
+Save that as `prompt.txt`, then stream it at your own pace:
+
+```sh
+while IFS= read -r line; do
+  echo "$line"
+  sleep 4
+done < prompt.txt | .build/debug/cante-overlay
+```
+
+If you want the smaller second line to show what comes next, use JSON Lines. Each line should be one JSON object:
+
+```jsonl
+{"current":"Welcome everyone, and thanks for joining.","next":"Today I want to show what Cante can do."}
+{"current":"Today I want to show what Cante can do.","next":"Let's start with the live desktop overlay."}
+{"current":"Let's start with the live desktop overlay.","next":null}
+```
+
+Then stream the file the same way:
+
+```sh
+while IFS= read -r line; do
+  echo "$line"
+  sleep 4
+done < prompt.jsonl | .build/debug/cante-overlay
+```
+
+Plain text updates only the main line. JSON Lines can update both the main line and the smaller next line.
+
 ## Lyrics-Only Streaming
 
 The second CLI fetches synced lyrics from LRCLIB and prints each line according to its LRC timestamp:
