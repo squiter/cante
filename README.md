@@ -6,9 +6,21 @@ Cante shows the current Spotify lyric line in a floating macOS desktop overlay, 
 
 ![Cante overlay demo](docs/demo.gif)
 
-## Download
+## Install
 
-Cante ships as a macOS command-line bundle on GitHub Releases.
+### Homebrew (recommended)
+
+Cante is published as a Homebrew tap. Apple Silicon only.
+
+```sh
+brew install squiter/cante/cante
+```
+
+Upgrade later with `brew upgrade cante`. Tap source: [squiter/homebrew-cante](https://github.com/squiter/homebrew-cante).
+
+### Manual download
+
+Cante also ships as a macOS command-line bundle on GitHub Releases.
 
 1. Open the [Releases page](https://github.com/squiter/cante/releases).
 2. Download the latest `cante-...-macos-...tar.gz` archive.
@@ -29,51 +41,51 @@ cante-spotify
 cante-lyrics
 ```
 
-## Allow Binaries On macOS
-
-The release binaries are not notarized, so macOS Gatekeeper blocks them by default with a "cannot be opened because the developer cannot be verified" message. Remove the quarantine flag once after unpacking:
+The manual-download binaries are not notarized, so macOS Gatekeeper blocks them by default with a "cannot be opened because the developer cannot be verified" message. Remove the quarantine flag once after unpacking:
 
 ```sh
 xattr -dr com.apple.quarantine cante cante-overlay cante-spotify cante-lyrics
 ```
 
-Run this from inside the unpacked release folder. After that the binaries launch normally.
+Run this from inside the unpacked release folder. After that the binaries launch normally. Homebrew installs do not need this step.
 
 ## Run Cante
 
 Start Spotify, play a song, then run:
 
 ```sh
-./cante run
+cante run
 ```
+
+(If you installed manually, run `./cante run` from the unpacked folder.)
 
 The first time you run it, macOS may ask for permission to let Cante control Spotify. Allow it so Cante can read the current track and playback position.
 
 The overlay can be dragged around the screen. Close it with the `x` button, or from a terminal:
 
 ```sh
-./cante stop
+cante stop
 ```
 
 Clear cached lyrics:
 
 ```sh
-./cante clear-cache
+cante clear-cache
 ```
 
 Run with debug logs:
 
 ```sh
-./cante run --debug
+cante run --debug
 ```
 
 Run in click-through mode:
 
 ```sh
-./cante run --click-through
+cante run --click-through
 ```
 
-In click-through mode, the overlay ignores mouse events, so the close button and dragging are disabled. Use `./cante stop` to close it.
+In click-through mode, the overlay ignores mouse events, so the close button and dragging are disabled. Use `cante stop` to close it.
 
 ## Customize The Overlay
 
@@ -87,7 +99,7 @@ A few overlay options let you adjust readability, size, and density:
 All toggles default to off and can be forced off with the `--no-*` variant (`--no-text-shadow`, `--no-opaque`, `--no-single-line`):
 
 ```sh
-./cante run --text-shadow --opaque --size small --single-line
+cante run --text-shadow --opaque --size small --single-line
 ```
 
 To make the choices persistent, create `~/.config/cante/config.json`:
@@ -122,16 +134,17 @@ swift build
 .build/debug/cante run
 ```
 
-Create a GitHub release by pushing a version tag:
+Release changes are tracked in [CHANGELOG.md](CHANGELOG.md).
+
+To cut a new release, add a `## [x.y.z]` section to `CHANGELOG.md`, commit it, then run:
 
 ```sh
-git tag v0.1.0
-git push origin v0.1.0
+make release VERSION=x.y.z
 ```
 
-GitHub Actions will build release binaries, create a `.tar.gz` archive plus a SHA-256 checksum, and attach both files to the GitHub Release.
+This tags `vx.y.z`, waits for the GitHub Actions release workflow to publish the `arm64` tarball, and then updates the formula in [squiter/homebrew-cante](https://github.com/squiter/homebrew-cante) (path overridable via `HOMEBREW_CANTE_DIR`, defaults to `../homebrew-cante`).
 
-Release changes are tracked in [CHANGELOG.md](CHANGELOG.md).
+GitHub Actions handles the actual build: it produces a `.tar.gz` archive plus a SHA-256 checksum and attaches both to the GitHub Release.
 
 ## Advanced Usage
 
