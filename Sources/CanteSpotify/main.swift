@@ -6,6 +6,8 @@ struct OverlayMessage: Encodable {
     let status: String?
     let current: String?
     let next: String?
+    let track: String?
+    let artist: String?
 }
 
 struct SpotifySnapshot: Equatable {
@@ -62,7 +64,7 @@ struct CanteSpotify {
                     currentTrackKey = snapshot.trackKey
                     lastPrintedFrame = nil
                     lines = []
-                    printLoadingMessage()
+                    printLoadingMessage(track: snapshot.track, artist: snapshot.artist)
                     isShowingLoading = true
 
                     fputs("Spotify: \(snapshot.artist) - \(snapshot.track)\n", stderr)
@@ -87,7 +89,7 @@ struct CanteSpotify {
 
                 guard snapshot.isPlaying else {
                     if !isShowingLoading {
-                        printLoadingMessage()
+                        printLoadingMessage(track: snapshot.track, artist: snapshot.artist)
                         isShowingLoading = true
                     }
 
@@ -108,7 +110,7 @@ struct CanteSpotify {
                 let message = "cante-spotify: \(error.localizedDescription)"
 
                 if !isShowingLoading {
-                    printLoadingMessage()
+                    printLoadingMessage(track: nil, artist: nil)
                     isShowingLoading = true
                 }
 
@@ -212,12 +214,12 @@ enum SpotifyReader {
 }
 
 func printOverlayMessage(current: String, next: String?) {
-    let message = OverlayMessage(status: nil, current: current, next: next)
+    let message = OverlayMessage(status: nil, current: current, next: next, track: nil, artist: nil)
     printMessage(message)
 }
 
-func printLoadingMessage() {
-    printMessage(OverlayMessage(status: "loading", current: nil, next: nil))
+func printLoadingMessage(track: String?, artist: String?) {
+    printMessage(OverlayMessage(status: "loading", current: nil, next: nil, track: track, artist: artist))
 }
 
 func printMessage(_ message: OverlayMessage) {

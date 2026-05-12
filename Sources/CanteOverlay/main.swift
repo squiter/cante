@@ -5,6 +5,8 @@ struct OverlayMessage: Decodable {
     let status: String?
     let current: String?
     let next: String?
+    let track: String?
+    let artist: String?
 }
 
 final class LyricsView: NSVisualEffectView {
@@ -32,8 +34,8 @@ final class LyricsView: NSVisualEffectView {
         subtitleLabel.stringValue = next?.isEmpty == false ? next ?? " " : " "
     }
 
-    func startLoading() {
-        textLabel.stringValue = "Cante"
+    func startLoading(title: String = "Cante") {
+        textLabel.stringValue = title.isEmpty ? "Cante" : title
         updateLoadingText()
 
         guard loadingTimer == nil else {
@@ -186,11 +188,23 @@ final class OverlayController: NSObject, NSApplicationDelegate {
         }
 
         if message.status == "loading" {
-            lyricsView.startLoading()
+            lyricsView.startLoading(title: loadingTitle(for: message))
             return
         }
 
         lyricsView.updateText(current: message.current ?? "", next: message.next)
+    }
+
+    private func loadingTitle(for message: OverlayMessage) -> String {
+        guard let track = message.track, !track.isEmpty else {
+            return "Cante"
+        }
+
+        guard let artist = message.artist, !artist.isEmpty else {
+            return track
+        }
+
+        return "\(artist) - \(track)"
     }
 }
 
