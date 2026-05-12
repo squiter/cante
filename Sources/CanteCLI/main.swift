@@ -8,17 +8,24 @@ struct CanteCLI {
 
     static func main() {
         do {
-            let command = CommandLine.arguments.dropFirst().first ?? "run"
+            let firstArgument = CommandLine.arguments.dropFirst().first
+            let helpFlags: Set<String> = ["help", "--help", "-h"]
+            let isHelp = firstArgument.map(helpFlags.contains) ?? false
+            let looksLikeFlag = !isHelp && (firstArgument?.hasPrefix("-") == true)
+            let command = isHelp ? "help" : (looksLikeFlag ? "run" : (firstArgument ?? "run"))
+            let runArguments = looksLikeFlag
+                ? Array(CommandLine.arguments.dropFirst())
+                : Array(CommandLine.arguments.dropFirst(2))
 
             switch command {
             case "run":
-                try runSpotifyOverlay(arguments: Array(CommandLine.arguments.dropFirst(2)))
+                try runSpotifyOverlay(arguments: runArguments)
             case "stop":
                 try runSiblingExecutable("cante-overlay", arguments: ["--stop"])
             case "clear-cache":
                 try LyricsClient.clearCache()
                 fputs("cante: cleared lyrics cache\n", stderr)
-            case "help", "--help", "-h":
+            case "help":
                 printHelp()
             default:
                 fputs("cante: unknown command '\(command)'\n\n", stderr)
@@ -63,12 +70,27 @@ struct CanteCLI {
             "--text-shadow",
             "--no-text-shadow",
             "--opaque",
-            "--no-opaque"
+            "--no-opaque",
+            "--single-line",
+            "--no-single-line"
         ]
 
         var result = debug ? ["--debug-stdin"] : []
-        for argument in arguments where passthroughFlags.contains(argument) {
-            result.append(argument)
+        var index = 0
+        while index < arguments.count {
+            let argument = arguments[index]
+
+            if passthroughFlags.contains(argument) {
+                result.append(argument)
+            } else if argument == "--size", let value = arguments[safe: index + 1] {
+                result.append(argument)
+                result.append(value)
+                index += 1
+            } else if argument.hasPrefix("--size=") {
+                result.append(argument)
+            }
+
+            index += 1
         }
         return result
     }
@@ -113,7 +135,11 @@ struct CanteCLI {
         print(
             """
             Usage:
-              cante run [--debug] [--click-through] [--text-shadow|--no-text-shadow] [--opaque|--no-opaque]
+              cante run [--debug] [--click-through]
+                        [--text-shadow|--no-text-shadow]
+                        [--opaque|--no-opaque]
+                        [--size small|medium|large]
+                        [--single-line|--no-single-line]
               cante stop
               cante clear-cache
 
@@ -125,10 +151,25 @@ struct CanteCLI {
             Overlay options:
               --text-shadow / --no-text-shadow   Toggle the dark halo around lyric text.
               --opaque      / --no-opaque        Toggle the opaque dark backdrop.
+              --size <preset>                    Scale the overlay (small, medium, large).
+              --single-line / --no-single-line   Show only the current lyric line.
 
             Persistent defaults can be set in ~/.config/cante/config.json:
-              { "overlay": { "textShadow": true, "opaqueBackground": false } }
+              {
+                "overlay": {
+                  "textShadow": true,
+                  "opaqueBackground": false,
+                  "size": "medium",
+                  "singleLine": false
+                }
+              }
             """
         )
+    }
+}
+
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        indices.contains(index) ? self[index] : nil
     }
 }

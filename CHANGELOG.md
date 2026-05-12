@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-12
+
+### Added
+
+- Overlay `--size small|medium|large` option that scales fonts, padding, and box dimensions together.
+- Overlay `--single-line` / `--no-single-line` option that hides the next-lyric line and folds loading / missing-lyrics status into the main line.
+
+### Changed
+
+- `cante` now treats a leading `--flag` as a `run` flag (e.g. `cante --single-line` works the same as `cante run --single-line`).
+
 ## [0.2.0] - 2026-05-12
 
 ### Added

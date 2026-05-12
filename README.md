@@ -77,24 +77,28 @@ In click-through mode, the overlay ignores mouse events, so the close button and
 
 ## Customize The Overlay
 
-Two overlay options help with readability when the desktop behind Cante is bright or visually busy:
+A few overlay options let you adjust readability, size, and density:
 
 - `--text-shadow` adds a dark halo around the lyric text so it stays legible over light wallpapers and white windows.
 - `--opaque` swaps the translucent backdrop for a solid dark panel, removing the blend with whatever is behind the overlay.
+- `--size small|medium|large` scales the whole overlay — fonts, padding, and box dimensions — together. Default is `medium`.
+- `--single-line` hides the second (next-lyric) line for a more compact box; loading and missing-lyrics status are folded into the main line.
 
-Both default to off. Pass either flag to enable, or `--no-text-shadow` / `--no-opaque` to force off:
+All toggles default to off and can be forced off with the `--no-*` variant (`--no-text-shadow`, `--no-opaque`, `--no-single-line`):
 
 ```sh
-./cante run --text-shadow --opaque
+./cante run --text-shadow --opaque --size small --single-line
 ```
 
-To make the choice persistent, create `~/.config/cante/config.json`:
+To make the choices persistent, create `~/.config/cante/config.json`:
 
 ```json
 {
   "overlay": {
     "textShadow": true,
-    "opaqueBackground": false
+    "opaqueBackground": false,
+    "size": "medium",
+    "singleLine": false
   }
 }
 ```

@@ -18,6 +18,28 @@ final class LyricsView: NSVisualEffectView {
     private var loadingTimer: Timer?
     private var dimTimer: Timer?
     private var loadingStep = 0
+    private var loadingTitleStem: String?
+
+    private var scale: CGFloat { config.size.scale }
+    private var titleFontSize: CGFloat { 34 * scale }
+    private var subtitleFontSize: CGFloat { 14 * scale }
+    private var topPadding: CGFloat { 22 * scale }
+    private var bottomPadding: CGFloat { 18 * scale }
+    private var leadingPadding: CGFloat { 28 * scale }
+    private var trailingPadding: CGFloat { 58 * scale }
+    private var labelGap: CGFloat { 8 * scale }
+    private var cornerRadius: CGFloat { 18 * scale }
+    private var closeButtonSize: CGFloat { 24 * scale }
+    private var closeButtonOffset: CGFloat { 14 * scale }
+    private var closeButtonFontSize: CGFloat { 12 * scale }
+
+    static func preferredSize(for config: OverlayConfig, availableWidth: CGFloat) -> NSSize {
+        let baseHeight: CGFloat = config.singleLine ? 92 : 132
+        let baseMaxWidth: CGFloat = 900
+        let width = min(baseMaxWidth * config.size.scale, availableWidth - 80)
+        let height = baseHeight * config.size.scale
+        return NSSize(width: width, height: height)
+    }
 
     init(frame frameRect: NSRect, config: OverlayConfig) {
         self.config = config
@@ -44,7 +66,11 @@ final class LyricsView: NSVisualEffectView {
 
     func startLoading(title: String = "Cante") {
         cancelDim()
-        setTitle(title.isEmpty ? "Cante" : title)
+        let resolved = title.isEmpty ? "Cante" : title
+        loadingTitleStem = resolved
+        if !config.singleLine {
+            setTitle(resolved)
+        }
         updateLoadingText()
 
         guard loadingTimer == nil else {
@@ -63,13 +89,20 @@ final class LyricsView: NSVisualEffectView {
         loadingTimer?.invalidate()
         loadingTimer = nil
         loadingStep = 0
+        loadingTitleStem = nil
     }
 
     func showNotFound(title: String) {
         stopLoading()
         cancelDim()
-        setTitle(title.isEmpty ? "Cante" : title)
-        setSubtitle("No synced lyrics found")
+        let resolved = title.isEmpty ? "Cante" : title
+
+        if config.singleLine {
+            setTitle("No synced lyrics: \(resolved)")
+        } else {
+            setTitle(resolved)
+            setSubtitle("No synced lyrics found")
+        }
 
         let timer = Timer(timeInterval: 2.5, repeats: false) { [weak self] _ in
             self?.dim()
@@ -84,20 +117,20 @@ final class LyricsView: NSVisualEffectView {
         material = .hudWindow
         blendingMode = .behindWindow
         state = .active
-        layer?.cornerRadius = 18
+        layer?.cornerRadius = cornerRadius
         layer?.masksToBounds = true
     }
 
     private func configureOpaqueBackingView() {
         opaqueBackingView.wantsLayer = true
         opaqueBackingView.layer?.backgroundColor = NSColor(srgbRed: 0.06, green: 0.06, blue: 0.07, alpha: 0.92).cgColor
-        opaqueBackingView.layer?.cornerRadius = 18
+        opaqueBackingView.layer?.cornerRadius = cornerRadius
         opaqueBackingView.isHidden = !config.opaqueBackground
         opaqueBackingView.translatesAutoresizingMaskIntoConstraints = false
     }
 
     private func configureLabels() {
-        textLabel.font = .systemFont(ofSize: 34, weight: .semibold)
+        textLabel.font = .systemFont(ofSize: titleFontSize, weight: .semibold)
         textLabel.textColor = .white
         textLabel.alignment = .center
         textLabel.lineBreakMode = .byWordWrapping
@@ -106,10 +139,11 @@ final class LyricsView: NSVisualEffectView {
         textLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         applyShadowAttributes(to: textLabel, baseColor: .white)
 
-        subtitleLabel.font = .systemFont(ofSize: 14, weight: .medium)
+        subtitleLabel.font = .systemFont(ofSize: subtitleFontSize, weight: .medium)
         subtitleLabel.textColor = NSColor.white.withAlphaComponent(0.68)
         subtitleLabel.alignment = .center
         subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
+        subtitleLabel.isHidden = config.singleLine
         applyShadowAttributes(to: subtitleLabel, baseColor: NSColor.white.withAlphaComponent(0.68))
     }
 
@@ -117,7 +151,7 @@ final class LyricsView: NSVisualEffectView {
         closeButton.target = self
         closeButton.action = #selector(closeOverlay)
         closeButton.bezelStyle = .circular
-        closeButton.font = .systemFont(ofSize: 12, weight: .bold)
+        closeButton.font = .systemFont(ofSize: closeButtonFontSize, weight: .bold)
         closeButton.contentTintColor = NSColor.white.withAlphaComponent(0.78)
         closeButton.toolTip = "Close Cante"
         closeButton.translatesAutoresizingMaskIntoConstraints = false
@@ -129,41 +163,57 @@ final class LyricsView: NSVisualEffectView {
         addSubview(subtitleLabel)
         addSubview(closeButton)
 
-        NSLayoutConstraint.activate([
+        var constraints: [NSLayoutConstraint] = [
             opaqueBackingView.leadingAnchor.constraint(equalTo: leadingAnchor),
             opaqueBackingView.trailingAnchor.constraint(equalTo: trailingAnchor),
             opaqueBackingView.topAnchor.constraint(equalTo: topAnchor),
             opaqueBackingView.bottomAnchor.constraint(equalTo: bottomAnchor),
 
-            textLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 28),
-            textLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -58),
-            textLabel.topAnchor.constraint(equalTo: topAnchor, constant: 22),
+            textLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: leadingPadding),
+            textLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -trailingPadding),
+            textLabel.topAnchor.constraint(equalTo: topAnchor, constant: topPadding),
 
-            subtitleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 28),
-            subtitleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -58),
-            subtitleLabel.topAnchor.constraint(equalTo: textLabel.bottomAnchor, constant: 8),
-            subtitleLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -18),
+            closeButton.topAnchor.constraint(equalTo: topAnchor, constant: closeButtonOffset),
+            closeButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -closeButtonOffset),
+            closeButton.widthAnchor.constraint(equalToConstant: closeButtonSize),
+            closeButton.heightAnchor.constraint(equalToConstant: closeButtonSize)
+        ]
 
-            closeButton.topAnchor.constraint(equalTo: topAnchor, constant: 14),
-            closeButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -14),
-            closeButton.widthAnchor.constraint(equalToConstant: 24),
-            closeButton.heightAnchor.constraint(equalToConstant: 24)
-        ])
+        if config.singleLine {
+            constraints.append(textLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -bottomPadding))
+        } else {
+            constraints.append(contentsOf: [
+                subtitleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: leadingPadding),
+                subtitleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -trailingPadding),
+                subtitleLabel.topAnchor.constraint(equalTo: textLabel.bottomAnchor, constant: labelGap),
+                subtitleLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -bottomPadding)
+            ])
+        }
+
+        NSLayoutConstraint.activate(constraints)
     }
 
     private func setTitle(_ value: String) {
         if config.textShadow {
-            textLabel.attributedStringValue = makeAttributedString(value, font: textLabel.font ?? .systemFont(ofSize: 34, weight: .semibold), color: .white)
+            textLabel.attributedStringValue = makeAttributedString(
+                value,
+                font: textLabel.font ?? .systemFont(ofSize: titleFontSize, weight: .semibold),
+                color: .white
+            )
         } else {
             textLabel.stringValue = value
         }
     }
 
     private func setSubtitle(_ value: String) {
+        guard !config.singleLine else {
+            return
+        }
+
         if config.textShadow {
             subtitleLabel.attributedStringValue = makeAttributedString(
                 value,
-                font: subtitleLabel.font ?? .systemFont(ofSize: 14, weight: .medium),
+                font: subtitleLabel.font ?? .systemFont(ofSize: subtitleFontSize, weight: .medium),
                 color: NSColor.white.withAlphaComponent(0.68)
             )
         } else {
@@ -202,7 +252,7 @@ final class LyricsView: NSVisualEffectView {
 
         label.attributedStringValue = makeAttributedString(
             label.stringValue,
-            font: label.font ?? .systemFont(ofSize: 14),
+            font: label.font ?? .systemFont(ofSize: subtitleFontSize),
             color: baseColor
         )
     }
@@ -238,16 +288,21 @@ final class LyricsView: NSVisualEffectView {
     }
 
     private func updateLoadingText() {
-        setSubtitle("Loading your lyrics" + String(repeating: ".", count: loadingStep))
+        let dots = String(repeating: ".", count: loadingStep)
+
+        if config.singleLine {
+            let stem = loadingTitleStem ?? "Cante"
+            setTitle("Loading \(stem)\(dots)")
+        } else {
+            setSubtitle("Loading your lyrics" + dots)
+        }
     }
 }
 
 final class OverlayController: NSObject, NSApplicationDelegate {
     private var window: NSWindow?
-    private let lyricsView = LyricsView(
-        frame: .zero,
-        config: OverlayConfig.load(arguments: CommandLine.arguments)
-    )
+    private let config = OverlayConfig.load(arguments: CommandLine.arguments)
+    private lazy var lyricsView = LyricsView(frame: .zero, config: config)
     private let inputReader = StandardInputReader(
         logsLines: CommandLine.arguments.contains("--debug-stdin")
     )
@@ -272,7 +327,7 @@ final class OverlayController: NSObject, NSApplicationDelegate {
 
     private func createOverlayWindow() {
         let visibleFrame = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
-        let size = NSSize(width: min(900, visibleFrame.width - 80), height: 132)
+        let size = LyricsView.preferredSize(for: config, availableWidth: visibleFrame.width)
         let origin = NSPoint(
             x: visibleFrame.midX - size.width / 2,
             y: visibleFrame.minY + 88
