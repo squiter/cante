@@ -59,12 +59,20 @@ cante run
 
 (If you installed manually, run `./cante run` from the unpacked folder.)
 
+By default `cante run` detaches into the background, returns your terminal, and writes output to `~/Library/Logs/cante.log`. The overlay supervisor pid is recorded in `/tmp/cante.pid`.
+
 The first time you run it, macOS may ask for permission to let Cante control Spotify. Allow it so Cante can read the current track and playback position.
 
 The overlay can be dragged around the screen. Close it with the `x` button, or from a terminal:
 
 ```sh
 cante stop
+```
+
+Pass `--foreground` (or `-f`) to keep cante attached to the current terminal — useful for debugging, since output goes to the terminal and Ctrl-C stops everything:
+
+```sh
+cante run --foreground --debug
 ```
 
 Clear cached lyrics:

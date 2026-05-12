@@ -1,10 +1,12 @@
 import CanteCore
+import Darwin
 import Foundation
 
 @main
 struct CanteCLI {
     private static var childProcesses: [Process] = []
     private static var signalSources: [DispatchSourceSignal] = []
+    private static let supervisorPidPath = "/tmp/cante.pid"
 
     static func main() {
         do {
@@ -19,9 +21,16 @@ struct CanteCLI {
 
             switch command {
             case "run":
-                try runSpotifyOverlay(arguments: runArguments)
+                let foregroundFlags: Set<String> = ["--foreground", "-f"]
+                let foreground = runArguments.contains(where: foregroundFlags.contains)
+                let cleanedArguments = runArguments.filter { !foregroundFlags.contains($0) }
+                if foreground {
+                    try runSpotifyOverlay(arguments: cleanedArguments)
+                } else {
+                    try daemonize(arguments: cleanedArguments)
+                }
             case "stop":
-                try runSiblingExecutable("cante-overlay", arguments: ["--stop"])
+                try stopRunning()
             case "clear-cache":
                 try LyricsClient.clearCache()
                 fputs("cante: cleared lyrics cache\n", stderr)
@@ -38,7 +47,40 @@ struct CanteCLI {
         }
     }
 
+    private static func daemonize(arguments: [String]) throws {
+        let logURL = logFileURL()
+        try FileManager.default.createDirectory(
+            at: logURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        if !FileManager.default.fileExists(atPath: logURL.path) {
+            FileManager.default.createFile(atPath: logURL.path, contents: nil)
+        }
+        let logHandle = try FileHandle(forWritingTo: logURL)
+        logHandle.seekToEndOfFile()
+
+        let child = Process()
+        child.executableURL = Bundle.main.executableURL
+            ?? URL(fileURLWithPath: CommandLine.arguments[0])
+        child.arguments = ["run", "--foreground"] + arguments
+        child.standardInput = FileHandle.nullDevice
+        child.standardOutput = logHandle
+        child.standardError = logHandle
+        try child.run()
+
+        let pid = child.processIdentifier
+        try "\(pid)\n".write(toFile: supervisorPidPath, atomically: true, encoding: .utf8)
+
+        print("cante: started in background (pid \(pid))")
+        print("Logs:  \(logURL.path)")
+        print("Stop:  cante stop")
+    }
+
     private static func runSpotifyOverlay(arguments: [String]) throws {
+        if isatty(STDIN_FILENO) == 0 {
+            _ = Darwin.setsid()
+        }
+
         let spotify = Process()
         let overlay = Process()
         let pipe = Pipe()
@@ -62,6 +104,40 @@ struct CanteCLI {
 
         overlay.waitUntilExit()
         terminateChildren()
+        clearSupervisorPidFileIfOwned()
+    }
+
+    private static func stopRunning() throws {
+        var supervisorSignalled = false
+        if let pidString = try? String(contentsOfFile: supervisorPidPath, encoding: .utf8),
+           let pid = pid_t(pidString.trimmingCharacters(in: .whitespacesAndNewlines)) {
+            if kill(pid, SIGTERM) == 0 {
+                supervisorSignalled = true
+                fputs("cante: stopped (pid \(pid))\n", stderr)
+            } else if errno != ESRCH {
+                fputs("cante: failed to stop pid \(pid): errno \(errno)\n", stderr)
+            }
+            try? FileManager.default.removeItem(atPath: supervisorPidPath)
+        }
+
+        if !supervisorSignalled {
+            try runSiblingExecutable("cante-overlay", arguments: ["--stop"])
+        }
+    }
+
+    private static func clearSupervisorPidFileIfOwned() {
+        guard let pidString = try? String(contentsOfFile: supervisorPidPath, encoding: .utf8),
+              let pid = pid_t(pidString.trimmingCharacters(in: .whitespacesAndNewlines)),
+              pid == getpid()
+        else {
+            return
+        }
+        try? FileManager.default.removeItem(atPath: supervisorPidPath)
+    }
+
+    private static func logFileURL() -> URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Logs/cante.log")
     }
 
     private static func overlayArguments(from arguments: [String], debug: Bool) -> [String] {
@@ -118,6 +194,7 @@ struct CanteCLI {
             let source = DispatchSource.makeSignalSource(signal: signalNumber, queue: .global())
             source.setEventHandler {
                 terminateChildren()
+                clearSupervisorPidFileIfOwned()
                 Foundation.exit(signalNumber == SIGINT ? 130 : 143)
             }
             source.resume()
@@ -135,7 +212,7 @@ struct CanteCLI {
         print(
             """
             Usage:
-              cante run [--debug] [--click-through]
+              cante run [--foreground|-f] [--debug] [--click-through]
                         [--text-shadow|--no-text-shadow]
                         [--opaque|--no-opaque]
                         [--size small|medium|large]
@@ -145,7 +222,11 @@ struct CanteCLI {
 
             Commands:
               run          Start Spotify-synced lyrics in the overlay.
-              stop         Close the running overlay.
+                           Detaches by default; output goes to
+                           ~/Library/Logs/cante.log. Pass --foreground / -f to
+                           keep cante in the current terminal (Ctrl-C stops it).
+              stop         Stop the running overlay (and the background
+                           supervisor, if there is one).
               clear-cache  Remove cached LRCLIB lyrics.
 
             Overlay options:

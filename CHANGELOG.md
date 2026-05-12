@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-05-12
+
+### Changed
+
+- `cante run` now detaches into the background by default and writes output to `~/Library/Logs/cante.log`. The supervisor pid is tracked in `/tmp/cante.pid`. Pass `--foreground` / `-f` to keep cante in the current terminal (Ctrl-C still stops it).
+- `cante stop` signals the background supervisor when one is recorded, which cleanly terminates the overlay and the Spotify poller. Without a supervisor it falls back to the previous overlay-only stop.
+
 ## [0.3.1] - 2026-05-12
 
 ### Fixed
