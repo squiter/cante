@@ -46,6 +46,10 @@ public enum LyricsError: LocalizedError {
 }
 
 public enum LyricsClient {
+    public static func clearCache() throws {
+        try LyricsCache.clear()
+    }
+
     public static func fetchSyncedLyrics(
         track: String,
         artist: String,
@@ -141,6 +145,16 @@ enum LyricsCache {
         } catch {
             return
         }
+    }
+
+    static func clear() throws {
+        let url = cacheDirectory.appendingPathComponent(folderName, isDirectory: true)
+
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            return
+        }
+
+        try FileManager.default.removeItem(at: url)
     }
 
     private static func cacheURL(track: String, artist: String, album: String?, duration: TimeInterval?) -> URL {

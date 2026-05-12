@@ -22,6 +22,13 @@ struct CanteLyrics {
     static func main() async {
         do {
             let arguments = parseArguments()
+
+            if CommandLine.arguments.contains("--clear-cache") {
+                try LyricsClient.clearCache()
+                fputs("cante-lyrics: cleared lyrics cache\n", stderr)
+                return
+            }
+
             let track = try requiredArgument("track", in: arguments)
             let artist = try requiredArgument("artist", in: arguments)
             let album = arguments["album"]

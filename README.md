@@ -81,6 +81,12 @@ The overlay shows a loading state while lyrics are being fetched or Spotify is n
 
 Fetched LRCLIB results are cached locally in the user cache directory, so repeated tracks avoid another network request.
 
+Clear the lyrics cache with:
+
+```sh
+swift run cante-lyrics --clear-cache
+```
+
 ## Manual Validation Checklist
 
 - The overlay appears above normal app windows.
