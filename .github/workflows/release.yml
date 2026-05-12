@@ -43,6 +43,12 @@ jobs:
           cat > "$DIST_DIR/INSTALL.md" <<'EOF'
           # Cante Install
 
+          The binaries are not notarized, so macOS Gatekeeper will block them on first launch. Remove the quarantine flag once from this folder:
+
+          ```sh
+          xattr -dr com.apple.quarantine cante cante-overlay cante-spotify cante-lyrics
+          ```
+
           Run Cante from this folder:
 
           ```sh

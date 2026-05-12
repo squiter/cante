@@ -25,6 +25,16 @@ cante-spotify
 cante-lyrics
 ```
 
+## Allow Binaries On macOS
+
+The release binaries are not notarized, so macOS Gatekeeper blocks them by default with a "cannot be opened because the developer cannot be verified" message. Remove the quarantine flag once after unpacking:
+
+```sh
+xattr -dr com.apple.quarantine cante cante-overlay cante-spotify cante-lyrics
+```
+
+Run this from inside the unpacked release folder. After that the binaries launch normally.
+
 ## Run Cante
 
 Start Spotify, play a song, then run:
