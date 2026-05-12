@@ -54,6 +54,7 @@ struct CanteSpotify {
         var lastStatusMessage: String?
         var lastPrintedFrame: LyricFrame?
         var isShowingLoading = false
+        var lyricsUnavailableTrackKey: String?
 
         while true {
             do {
@@ -63,6 +64,7 @@ struct CanteSpotify {
                 if snapshot.trackKey != currentTrackKey {
                     currentTrackKey = snapshot.trackKey
                     lastPrintedFrame = nil
+                    lyricsUnavailableTrackKey = nil
                     lines = []
                     printLoadingMessage(track: snapshot.track, artist: snapshot.artist)
                     isShowingLoading = true
@@ -80,6 +82,9 @@ struct CanteSpotify {
                         fputs("Lyrics: \(lines.count) synced lines from LRCLIB\n", stderr)
                     } catch {
                         fputs("Lyrics: \(error.localizedDescription)\n", stderr)
+                        lyricsUnavailableTrackKey = snapshot.trackKey
+                        printNotFoundMessage(track: snapshot.track, artist: snapshot.artist)
+                        isShowingLoading = false
                     }
                 }
 
@@ -94,6 +99,10 @@ struct CanteSpotify {
                     }
 
                     try? await Task.sleep(nanoseconds: UInt64(pollInterval * 1_000_000_000))
+                    continue
+                }
+
+                guard lyricsUnavailableTrackKey != snapshot.trackKey else {
                     continue
                 }
 
@@ -220,6 +229,10 @@ func printOverlayMessage(current: String, next: String?) {
 
 func printLoadingMessage(track: String?, artist: String?) {
     printMessage(OverlayMessage(status: "loading", current: nil, next: nil, track: track, artist: artist))
+}
+
+func printNotFoundMessage(track: String?, artist: String?) {
+    printMessage(OverlayMessage(status: "not_found", current: nil, next: nil, track: track, artist: artist))
 }
 
 func printMessage(_ message: OverlayMessage) {

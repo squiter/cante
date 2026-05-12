@@ -14,6 +14,7 @@ final class LyricsView: NSVisualEffectView {
     private let subtitleLabel = NSTextField(labelWithString: "Loading your lyrics")
     private let closeButton = NSButton(title: "x", target: nil, action: nil)
     private var loadingTimer: Timer?
+    private var dimTimer: Timer?
     private var loadingStep = 0
 
     override init(frame frameRect: NSRect) {
@@ -32,11 +33,13 @@ final class LyricsView: NSVisualEffectView {
 
     func updateText(current: String, next: String?) {
         stopLoading()
+        cancelDim()
         textLabel.stringValue = current.isEmpty ? " " : current
         subtitleLabel.stringValue = next?.isEmpty == false ? next ?? " " : " "
     }
 
     func startLoading(title: String = "Cante") {
+        cancelDim()
         textLabel.stringValue = title.isEmpty ? "Cante" : title
         updateLoadingText()
 
@@ -56,6 +59,20 @@ final class LyricsView: NSVisualEffectView {
         loadingTimer?.invalidate()
         loadingTimer = nil
         loadingStep = 0
+    }
+
+    func showNotFound(title: String) {
+        stopLoading()
+        cancelDim()
+        textLabel.stringValue = title.isEmpty ? "Cante" : title
+        subtitleLabel.stringValue = "No synced lyrics found"
+
+        let timer = Timer(timeInterval: 2.5, repeats: false) { [weak self] _ in
+            self?.dim()
+        }
+
+        RunLoop.main.add(timer, forMode: .common)
+        dimTimer = timer
     }
 
     private func configureView() {
@@ -116,6 +133,23 @@ final class LyricsView: NSVisualEffectView {
 
     @objc private func closeOverlay() {
         NSApp.terminate(nil)
+    }
+
+    private func cancelDim() {
+        dimTimer?.invalidate()
+        dimTimer = nil
+
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.2
+            animator().alphaValue = 1
+        }
+    }
+
+    private func dim() {
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 1.2
+            animator().alphaValue = 0.18
+        }
     }
 
     private func advanceLoadingText() {
@@ -211,6 +245,11 @@ final class OverlayController: NSObject, NSApplicationDelegate {
 
         if message.status == "loading" {
             lyricsView.startLoading(title: loadingTitle(for: message))
+            return
+        }
+
+        if message.status == "not_found" {
+            lyricsView.showNotFound(title: loadingTitle(for: message))
             return
         }
 
