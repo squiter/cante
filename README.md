@@ -2,7 +2,7 @@
 
 Cante shows the current Spotify lyric line in a floating macOS desktop overlay, with the next line underneath.
 
-<video src="docs/demo.mp4" controls muted playsinline width="600"></video>
+![Cante overlay demo](docs/demo.gif)
 
 ## Download
 
