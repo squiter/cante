@@ -65,6 +65,9 @@ final class LyricsView: NSVisualEffectView {
 final class OverlayController: NSObject, NSApplicationDelegate {
     private var window: NSWindow?
     private let lyricsView = LyricsView(frame: .zero)
+    private let inputReader = StandardInputReader(
+        logsLines: CommandLine.arguments.contains("--debug-stdin")
+    )
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -110,17 +113,77 @@ final class OverlayController: NSObject, NSApplicationDelegate {
     }
 
     private func startReadingStandardInput() {
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            while let line = readLine() {
+        inputReader.start(
+            onLine: { [weak self] line in
                 DispatchQueue.main.async {
                     self?.lyricsView.updateText(line)
+                    self?.window?.orderFrontRegardless()
+                }
+            },
+            onEnd: {
+                DispatchQueue.main.async {
+                    NSApp.terminate(nil)
                 }
             }
+        )
+    }
+}
 
-            DispatchQueue.main.async {
-                NSApp.terminate(nil)
+final class StandardInputReader {
+    private let input = FileHandle.standardInput
+    private let logsLines: Bool
+    private var buffer = Data()
+
+    init(logsLines: Bool = false) {
+        self.logsLines = logsLines
+    }
+
+    func start(onLine: @escaping (String) -> Void, onEnd: @escaping () -> Void) {
+        input.readabilityHandler = { [weak self] handle in
+            guard let self else {
+                return
             }
+
+            let data = handle.availableData
+
+            guard !data.isEmpty else {
+                handle.readabilityHandler = nil
+                self.emitRemainingBuffer(onLine: onLine)
+                onEnd()
+                return
+            }
+
+            self.buffer.append(data)
+            self.emitCompleteLines(onLine: onLine)
         }
+    }
+
+    private func emitCompleteLines(onLine: (String) -> Void) {
+        while let newline = buffer.firstIndex(of: 10) {
+            let lineData = buffer[..<newline]
+            buffer.removeSubrange(...newline)
+            emit(lineData, onLine: onLine)
+        }
+    }
+
+    private func emitRemainingBuffer(onLine: (String) -> Void) {
+        guard !buffer.isEmpty else {
+            return
+        }
+
+        emit(buffer, onLine: onLine)
+        buffer.removeAll()
+    }
+
+    private func emit(_ data: Data, onLine: (String) -> Void) {
+        let line = String(decoding: data, as: UTF8.self)
+            .trimmingCharacters(in: .newlines)
+
+        if logsLines {
+            fputs("cante-overlay stdin: \(line)\n", stderr)
+        }
+
+        onLine(line)
     }
 }
 
