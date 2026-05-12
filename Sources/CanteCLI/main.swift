@@ -106,8 +106,8 @@ struct CanteCLI {
     }
 
     private static func executableURL(named name: String) -> URL {
-        let currentExecutable = URL(fileURLWithPath: CommandLine.arguments[0])
-        let directory = currentExecutable.deletingLastPathComponent()
+        let directory = Bundle.main.executableURL?.deletingLastPathComponent()
+            ?? URL(fileURLWithPath: CommandLine.arguments[0]).deletingLastPathComponent()
         return directory.appendingPathComponent(name)
     }
 
