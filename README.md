@@ -1,6 +1,6 @@
 # Cante
 
-Cante is an early macOS lyrics overlay prototype. It shows the current Spotify lyric line in a floating desktop overlay, with the next line underneath.
+Cante shows the current Spotify lyric line in a floating macOS desktop overlay, with the next line underneath.
 
 ## Download
 
@@ -89,9 +89,9 @@ GitHub Actions will build release binaries, create a `.tar.gz` archive plus a SH
 
 Release changes are tracked in [CHANGELOG.md](CHANGELOG.md).
 
-## Current Prototype
+## Advanced Usage
 
-The first milestone is intentionally small: a Swift CLI that reads text from standard input and renders the latest line in a translucent, borderless floating window.
+The overlay reads from standard input, so you can drive it with your own scripts.
 
 Run it with:
 
@@ -160,7 +160,7 @@ Plain text updates only the main line. JSON Lines can update both the main line 
 
 ## Lyrics-Only Streaming
 
-The second CLI fetches synced lyrics from LRCLIB and prints each line according to its LRC timestamp:
+`cante-lyrics` fetches synced lyrics from LRCLIB and prints each line according to its LRC timestamp:
 
 ```sh
 swift run cante-lyrics --track "ERROR" --artist "The Warning"
@@ -185,7 +185,7 @@ If lyrics are visible in the terminal but not in the overlay, run the overlay wi
 swift run cante-lyrics --track "ERROR" --artist "The Warning" --skip-intro true | .build/debug/cante-overlay --debug-stdin
 ```
 
-## Spotify Sync Prototype
+## Spotify Sync
 
 `cante-spotify` reads the current Spotify desktop playback through macOS scripting, fetches synced lyrics from LRCLIB when the track changes, and prints the lyric line that matches Spotify's playback position.
 
@@ -200,7 +200,7 @@ For troubleshooting:
 .build/debug/cante-spotify --debug | .build/debug/cante-overlay --debug-stdin
 ```
 
-This prototype requires the Spotify desktop app to be running. macOS may ask for permission to let Cante control Spotify.
+This requires the Spotify desktop app to be running. macOS may ask for permission to let Cante control Spotify.
 
 The overlay shows a loading state while lyrics are being fetched or Spotify is not actively playing. Once lyrics are available, it shows the current line and the next line underneath.
 
@@ -211,19 +211,3 @@ Clear the lyrics cache with:
 ```sh
 .build/debug/cante clear-cache
 ```
-
-## Manual Validation Checklist
-
-- The overlay appears above normal app windows.
-- The overlay remains visible when switching Spaces/desktops.
-- The overlay does not capture mouse clicks.
-- The background is translucent/blurred.
-- New stdin lines update the displayed lyric.
-- Timestamped LRCLIB lyrics stream into the overlay.
-- Spotify desktop playback position drives the current lyric line.
-
-## Next Small Steps
-
-- Add flags for position, opacity, and click-through behavior.
-- Add a local HTTP or WebSocket input bridge.
-- Parse timestamped LRC lines and animate current/next lyric state.
