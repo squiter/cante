@@ -1,5 +1,7 @@
 # Cante
 
+*Pronounced /ˈkɐ̃tʃi/ ("KAHN-chee") — Portuguese for "sing!" (imperative of *cantar*).*
+
 Cante shows the current Spotify lyric line in a floating macOS desktop overlay, with the next line underneath.
 
 ![Cante overlay demo](docs/demo.gif)
