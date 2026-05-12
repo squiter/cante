@@ -1,44 +1,91 @@
 # Cante
 
-Cante is an early macOS lyrics overlay prototype.
+Cante is an early macOS lyrics overlay prototype. It shows the current Spotify lyric line in a floating desktop overlay, with the next line underneath.
 
-## Quick Start
+## Download
+
+Cante ships as a macOS command-line bundle on GitHub Releases.
+
+1. Open the [Releases page](https://github.com/squiter/cante/releases).
+2. Download the latest `cante-...-macos-...tar.gz` archive.
+3. Download the matching `.sha256` file if you want to verify the archive.
+4. Unpack the archive.
+
+```sh
+tar -xzf cante-*-macos-*.tar.gz
+cd cante-*-macos-*
+```
+
+Keep the included binaries together in the same folder:
+
+```text
+cante
+cante-overlay
+cante-spotify
+cante-lyrics
+```
+
+## Run Cante
+
+Start Spotify, play a song, then run:
+
+```sh
+./cante run
+```
+
+The first time you run it, macOS may ask for permission to let Cante control Spotify. Allow it so Cante can read the current track and playback position.
+
+The overlay can be dragged around the screen. Close it with the `x` button, or from a terminal:
+
+```sh
+./cante stop
+```
+
+Clear cached lyrics:
+
+```sh
+./cante clear-cache
+```
+
+Run with debug logs:
+
+```sh
+./cante run --debug
+```
+
+Run in click-through mode:
+
+```sh
+./cante run --click-through
+```
+
+In click-through mode, the overlay ignores mouse events, so the close button and dragging are disabled. Use `./cante stop` to close it.
+
+## Behavior
+
+- Shows the current lyric line and the next lyric line.
+- Shows the current track while lyrics are loading.
+- Fades down when synced lyrics are not available for a song.
+- Caches LRCLIB synced lyrics locally so repeated songs load faster.
+- Floats above other windows and joins all Spaces.
+
+## Build From Source
+
+For development:
 
 ```sh
 swift build
 .build/debug/cante run
 ```
 
-Stop the overlay with the `x` button in the overlay UI, or from a terminal:
-
-```sh
-.build/debug/cante stop
-```
-
-Clear cached lyrics:
-
-```sh
-.build/debug/cante clear-cache
-```
-
-## GitHub Releases
-
-Cante ships as a macOS command-line bundle on GitHub Releases. Download the `cante-...-macos-...tar.gz` archive, unpack it, and keep the included binaries together in the same folder:
-
-```sh
-tar -xzf cante-*-macos-*.tar.gz
-cd cante-*-macos-*
-./cante run
-```
-
-Create a release by pushing a version tag:
+Create a GitHub release by pushing a version tag:
 
 ```sh
 git tag v0.1.0
 git push origin v0.1.0
 ```
 
-GitHub Actions will build the release binaries, create a `.tar.gz` archive plus a SHA-256 checksum, and attach both files to the GitHub Release.
+GitHub Actions will build release binaries, create a `.tar.gz` archive plus a SHA-256 checksum, and attach both files to the GitHub Release.
 
 Release changes are tracked in [CHANGELOG.md](CHANGELOG.md).
 
