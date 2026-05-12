@@ -79,6 +79,8 @@ This prototype requires the Spotify desktop app to be running. macOS may ask for
 
 The overlay shows a loading state while lyrics are being fetched or Spotify is not actively playing. Once lyrics are available, it shows the current line and the next line underneath.
 
+Fetched LRCLIB results are cached locally in the user cache directory, so repeated tracks avoid another network request.
+
 ## Manual Validation Checklist
 
 - The overlay appears above normal app windows.

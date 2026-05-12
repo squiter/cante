@@ -1,6 +1,6 @@
 import Foundation
 
-public struct LyricsResult: Decodable {
+public struct LyricsResult: Codable {
     public let trackName: String?
     public let artistName: String?
     public let albumName: String?
@@ -52,6 +52,13 @@ public enum LyricsClient {
         album: String?,
         duration: TimeInterval? = nil
     ) async throws -> LyricsResult {
+        if let cachedResult = LyricsCache.read(track: track, artist: artist, album: album, duration: duration) {
+            fputs("Lyrics cache: hit\n", stderr)
+            return cachedResult
+        }
+
+        fputs("Lyrics cache: miss\n", stderr)
+
         var components = URLComponents(string: "https://lrclib.net/api/search")
         components?.queryItems = [
             URLQueryItem(name: "track_name", value: track),
@@ -88,13 +95,18 @@ public enum LyricsClient {
             throw LyricsError.noSyncedLyrics
         }
 
+        let result: LyricsResult
+
         if let duration {
-            return syncedResults.min { left, right in
+            result = syncedResults.min { left, right in
                 durationDistance(left.duration, duration) < durationDistance(right.duration, duration)
             } ?? syncedResults[0]
+        } else {
+            result = syncedResults[0]
         }
 
-        return syncedResults[0]
+        LyricsCache.write(result, track: track, artist: artist, album: album, duration: duration)
+        return result
     }
 
     private static func durationDistance(_ candidate: Double?, _ target: TimeInterval) -> TimeInterval {
@@ -103,6 +115,64 @@ public enum LyricsClient {
         }
 
         return abs(candidate - target)
+    }
+}
+
+enum LyricsCache {
+    private static let folderName = "Lyrics"
+
+    static func read(track: String, artist: String, album: String?, duration: TimeInterval?) -> LyricsResult? {
+        let url = cacheURL(track: track, artist: artist, album: album, duration: duration)
+
+        guard let data = try? Data(contentsOf: url) else {
+            return nil
+        }
+
+        return try? JSONDecoder().decode(LyricsResult.self, from: data)
+    }
+
+    static func write(_ result: LyricsResult, track: String, artist: String, album: String?, duration: TimeInterval?) {
+        let url = cacheURL(track: track, artist: artist, album: album, duration: duration)
+
+        do {
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            let data = try JSONEncoder().encode(result)
+            try data.write(to: url, options: .atomic)
+        } catch {
+            return
+        }
+    }
+
+    private static func cacheURL(track: String, artist: String, album: String?, duration: TimeInterval?) -> URL {
+        cacheDirectory
+            .appendingPathComponent(folderName, isDirectory: true)
+            .appendingPathComponent(cacheKey(track: track, artist: artist, album: album, duration: duration))
+            .appendingPathExtension("json")
+    }
+
+    private static var cacheDirectory: URL {
+        FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first?
+            .appendingPathComponent("Cante", isDirectory: true)
+        ?? URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("Cante", isDirectory: true)
+    }
+
+    private static func cacheKey(track: String, artist: String, album: String?, duration: TimeInterval?) -> String {
+        let rawKey = [
+            normalize(artist),
+            normalize(album ?? ""),
+            normalize(track),
+            duration.map { String(Int($0.rounded())) } ?? ""
+        ].joined(separator: "|")
+
+        return Data(rawKey.utf8)
+            .base64EncodedString()
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "=", with: "")
+    }
+
+    private static func normalize(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 }
 
