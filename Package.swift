@@ -8,12 +8,17 @@ let package = Package(
         .macOS(.v13)
     ],
     products: [
-        .executable(name: "cante-overlay", targets: ["CanteOverlay"])
+        .executable(name: "cante-overlay", targets: ["CanteOverlay"]),
+        .executable(name: "cante-lyrics", targets: ["CanteLyrics"])
     ],
     targets: [
         .executableTarget(
             name: "CanteOverlay",
             path: "Sources/CanteOverlay"
+        ),
+        .executableTarget(
+            name: "CanteLyrics",
+            path: "Sources/CanteLyrics"
         )
     ]
 )

@@ -25,6 +25,26 @@ while true; do
 done | swift run cante-overlay
 ```
 
+## Lyrics-Only Streaming
+
+The second CLI fetches synced lyrics from LRCLIB and prints each line according to its LRC timestamp:
+
+```sh
+swift run cante-lyrics --track "Nude" --artist "Radiohead"
+```
+
+Pipe it into the overlay:
+
+```sh
+swift run cante-lyrics --track "Nude" --artist "Radiohead" | swift run cante-overlay
+```
+
+This does not know Spotify playback position yet. It treats command start as song start, which is enough to validate timestamp parsing and overlay updates. For faster visual testing, skip directly to the first lyric:
+
+```sh
+swift run cante-lyrics --track "Nude" --artist "Radiohead" --skip-intro true | swift run cante-overlay
+```
+
 ## Manual Validation Checklist
 
 - The overlay appears above normal app windows.
@@ -32,6 +52,7 @@ done | swift run cante-overlay
 - The overlay does not capture mouse clicks.
 - The background is translucent/blurred.
 - New stdin lines update the displayed lyric.
+- Timestamped LRCLIB lyrics stream into the overlay.
 
 ## Next Small Steps
 
