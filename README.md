@@ -75,6 +75,32 @@ Run in click-through mode:
 
 In click-through mode, the overlay ignores mouse events, so the close button and dragging are disabled. Use `./cante stop` to close it.
 
+## Customize The Overlay
+
+Two overlay options help with readability when the desktop behind Cante is bright or visually busy:
+
+- `--text-shadow` adds a dark halo around the lyric text so it stays legible over light wallpapers and white windows.
+- `--opaque` swaps the translucent backdrop for a solid dark panel, removing the blend with whatever is behind the overlay.
+
+Both default to off. Pass either flag to enable, or `--no-text-shadow` / `--no-opaque` to force off:
+
+```sh
+./cante run --text-shadow --opaque
+```
+
+To make the choice persistent, create `~/.config/cante/config.json`:
+
+```json
+{
+  "overlay": {
+    "textShadow": true,
+    "opaqueBackground": false
+  }
+}
+```
+
+CLI flags override the config file, so you can keep persistent defaults and still flip them per-run.
+
 ## Behavior
 
 - Shows the current lyric line and the next lyric line.

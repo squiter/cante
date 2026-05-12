@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-12
+
+### Added
+
+- Overlay option for a dark text shadow that keeps lyrics readable over bright backgrounds (`--text-shadow` / `--no-text-shadow`).
+- Overlay option for an opaque dark backdrop instead of the translucent material (`--opaque` / `--no-opaque`).
+- Optional `~/.config/cante/config.json` file to set persistent overlay defaults; CLI flags override the file.
+
 ## [0.1.0] - 2026-05-12
 
 ### Added

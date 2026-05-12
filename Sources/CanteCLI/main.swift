@@ -36,7 +36,6 @@ struct CanteCLI {
         let overlay = Process()
         let pipe = Pipe()
         let debug = arguments.contains("--debug")
-        let clickThrough = arguments.contains("--click-through")
 
         spotify.executableURL = executableURL(named: "cante-spotify")
         spotify.arguments = debug ? ["--debug"] : []
@@ -44,7 +43,7 @@ struct CanteCLI {
         spotify.standardError = FileHandle.standardError
 
         overlay.executableURL = executableURL(named: "cante-overlay")
-        overlay.arguments = [debug ? "--debug-stdin" : nil, clickThrough ? "--click-through" : nil].compactMap { $0 }
+        overlay.arguments = overlayArguments(from: arguments, debug: debug)
         overlay.standardInput = pipe
         overlay.standardError = FileHandle.standardError
 
@@ -56,6 +55,22 @@ struct CanteCLI {
 
         overlay.waitUntilExit()
         terminateChildren()
+    }
+
+    private static func overlayArguments(from arguments: [String], debug: Bool) -> [String] {
+        let passthroughFlags: Set<String> = [
+            "--click-through",
+            "--text-shadow",
+            "--no-text-shadow",
+            "--opaque",
+            "--no-opaque"
+        ]
+
+        var result = debug ? ["--debug-stdin"] : []
+        for argument in arguments where passthroughFlags.contains(argument) {
+            result.append(argument)
+        }
+        return result
     }
 
     private static func runSiblingExecutable(_ name: String, arguments: [String]) throws {
@@ -98,7 +113,7 @@ struct CanteCLI {
         print(
             """
             Usage:
-              cante run [--debug] [--click-through]
+              cante run [--debug] [--click-through] [--text-shadow|--no-text-shadow] [--opaque|--no-opaque]
               cante stop
               cante clear-cache
 
@@ -106,6 +121,13 @@ struct CanteCLI {
               run          Start Spotify-synced lyrics in the overlay.
               stop         Close the running overlay.
               clear-cache  Remove cached LRCLIB lyrics.
+
+            Overlay options:
+              --text-shadow / --no-text-shadow   Toggle the dark halo around lyric text.
+              --opaque      / --no-opaque        Toggle the opaque dark backdrop.
+
+            Persistent defaults can be set in ~/.config/cante/config.json:
+              { "overlay": { "textShadow": true, "opaqueBackground": false } }
             """
         )
     }
