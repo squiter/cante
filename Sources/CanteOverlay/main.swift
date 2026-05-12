@@ -1,4 +1,10 @@
 import AppKit
+import Foundation
+
+struct OverlayMessage: Decodable {
+    let current: String
+    let next: String?
+}
 
 final class LyricsView: NSVisualEffectView {
     private let textLabel = NSTextField(labelWithString: "Cante")
@@ -16,9 +22,9 @@ final class LyricsView: NSVisualEffectView {
         fatalError("init(coder:) has not been implemented")
     }
 
-    func updateText(_ text: String) {
-        textLabel.stringValue = text.isEmpty ? " " : text
-        subtitleLabel.stringValue = " "
+    func updateText(current: String, next: String?) {
+        textLabel.stringValue = current.isEmpty ? " " : current
+        subtitleLabel.stringValue = next?.isEmpty == false ? next ?? " " : " "
     }
 
     private func configureView() {
@@ -123,7 +129,7 @@ final class OverlayController: NSObject, NSApplicationDelegate {
         inputReader.start(
             onLine: { [weak self] line in
                 DispatchQueue.main.async {
-                    self?.lyricsView.updateText(line)
+                    self?.updateOverlay(with: line)
                     self?.window?.orderFrontRegardless()
                 }
             },
@@ -133,6 +139,16 @@ final class OverlayController: NSObject, NSApplicationDelegate {
                 }
             }
         )
+    }
+
+    private func updateOverlay(with line: String) {
+        guard let data = line.data(using: .utf8),
+              let message = try? JSONDecoder().decode(OverlayMessage.self, from: data) else {
+            lyricsView.updateText(current: line, next: nil)
+            return
+        }
+
+        lyricsView.updateText(current: message.current, next: message.next)
     }
 }
 

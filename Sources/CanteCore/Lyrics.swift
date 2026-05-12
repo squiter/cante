@@ -8,13 +8,23 @@ public struct LyricsResult: Decodable {
     public let syncedLyrics: String?
 }
 
-public struct LyricLine {
+public struct LyricLine: Equatable {
     public let startTime: TimeInterval
     public let text: String
 
     public init(startTime: TimeInterval, text: String) {
         self.startTime = startTime
         self.text = text
+    }
+}
+
+public struct LyricFrame: Equatable {
+    public let current: LyricLine
+    public let next: LyricLine?
+
+    public init(current: LyricLine, next: LyricLine?) {
+        self.current = current
+        self.next = next
     }
 }
 
@@ -137,16 +147,26 @@ public enum LRCParser {
 
 public enum LyricTimeline {
     public static func currentLine(in lines: [LyricLine], at playbackPosition: TimeInterval) -> LyricLine? {
+        currentFrame(in: lines, at: playbackPosition)?.current
+    }
+
+    public static func currentFrame(in lines: [LyricLine], at playbackPosition: TimeInterval) -> LyricFrame? {
         var current: LyricLine?
+        var next: LyricLine?
 
         for line in lines {
             guard line.startTime <= playbackPosition else {
+                next = line
                 break
             }
 
             current = line
         }
 
-        return current
+        guard let current else {
+            return nil
+        }
+
+        return LyricFrame(current: current, next: next)
     }
 }

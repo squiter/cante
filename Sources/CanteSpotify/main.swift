@@ -2,6 +2,11 @@ import CanteCore
 import AppKit
 import Foundation
 
+struct OverlayMessage: Encodable {
+    let current: String
+    let next: String?
+}
+
 struct SpotifySnapshot: Equatable {
     let state: String
     let track: String
@@ -44,7 +49,7 @@ struct CanteSpotify {
         var currentTrackKey: String?
         var lines: [LyricLine] = []
         var lastStatusMessage: String?
-        var lastPrintedLine: String?
+        var lastPrintedFrame: LyricFrame?
 
         while true {
             do {
@@ -53,7 +58,7 @@ struct CanteSpotify {
 
                 if snapshot.trackKey != currentTrackKey {
                     currentTrackKey = snapshot.trackKey
-                    lastPrintedLine = nil
+                    lastPrintedFrame = nil
                     lines = []
 
                     fputs("Spotify: \(snapshot.artist) - \(snapshot.track)\n", stderr)
@@ -77,10 +82,13 @@ struct CanteSpotify {
                 }
 
                 if snapshot.isPlaying,
-                   let currentLine = LyricTimeline.currentLine(in: lines, at: snapshot.position),
-                   currentLine.text != lastPrintedLine {
-                    print(currentLine.text, fflush: true)
-                    lastPrintedLine = currentLine.text
+                   let currentFrame = LyricTimeline.currentFrame(in: lines, at: snapshot.position),
+                   currentFrame != lastPrintedFrame {
+                    printOverlayMessage(
+                        current: currentFrame.current.text,
+                        next: currentFrame.next?.text
+                    )
+                    lastPrintedFrame = currentFrame
                 }
             } catch {
                 let message = "cante-spotify: \(error.localizedDescription)"
@@ -180,10 +188,15 @@ enum SpotifyReader {
     }
 }
 
-func print(_ value: String, fflush: Bool) {
-    Swift.print(value)
+func printOverlayMessage(current: String, next: String?) {
+    let message = OverlayMessage(current: current, next: next)
 
-    if fflush {
-        Darwin.fflush(stdout)
+    if let data = try? JSONEncoder().encode(message),
+       let encoded = String(data: data, encoding: .utf8) {
+        Swift.print(encoded)
+    } else {
+        Swift.print(current)
     }
+
+    Darwin.fflush(stdout)
 }

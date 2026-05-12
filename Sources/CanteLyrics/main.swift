@@ -1,6 +1,11 @@
 import CanteCore
 import Foundation
 
+struct OverlayMessage: Encodable {
+    let current: String
+    let next: String?
+}
+
 enum LyricsError: LocalizedError {
     case missingArgument(String)
 
@@ -65,7 +70,7 @@ struct CanteLyrics {
         let clockStart = Date()
         let lyricStart = skipsIntro ? lines[0].startTime : 0
 
-        for line in lines {
+        for (index, line) in lines.enumerated() {
             let targetDelay = line.startTime - lyricStart
             let elapsed = Date().timeIntervalSince(clockStart)
             let remaining = targetDelay - elapsed
@@ -74,15 +79,26 @@ struct CanteLyrics {
                 Thread.sleep(forTimeInterval: remaining)
             }
 
-            print(line.text, fflush: true)
+            printOverlayMessage(current: line.text, next: lines[safe: index + 1]?.text)
         }
     }
 }
 
-func print(_ value: String, fflush: Bool) {
-    Swift.print(value)
+func printOverlayMessage(current: String, next: String?) {
+    let message = OverlayMessage(current: current, next: next)
 
-    if fflush {
-        Darwin.fflush(stdout)
+    if let data = try? JSONEncoder().encode(message),
+       let encoded = String(data: data, encoding: .utf8) {
+        Swift.print(encoded)
+    } else {
+        Swift.print(current)
+    }
+
+    Darwin.fflush(stdout)
+}
+
+extension Collection {
+    subscript(safe index: Index) -> Element? {
+        indices.contains(index) ? self[index] : nil
     }
 }
