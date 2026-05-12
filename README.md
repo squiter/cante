@@ -40,6 +40,8 @@ git push origin v0.1.0
 
 GitHub Actions will build the release binaries, create a `.tar.gz` archive plus a SHA-256 checksum, and attach both files to the GitHub Release.
 
+Release changes are tracked in [CHANGELOG.md](CHANGELOG.md).
+
 ## Current Prototype
 
 The first milestone is intentionally small: a Swift CLI that reads text from standard input and renders the latest line in a translucent, borderless floating window.
