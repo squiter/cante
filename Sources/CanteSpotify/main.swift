@@ -111,6 +111,8 @@ struct CanteSpotify {
 }
 
 enum SpotifyReader {
+    private static let fieldSeparator = "\u{1f}"
+
     static func currentSnapshot() throws -> SpotifySnapshot {
         guard isSpotifyRunning else {
             throw SpotifyError.notRunning
@@ -124,7 +126,7 @@ enum SpotifyReader {
           set durationSeconds to (duration of current track) / 1000
           set positionSeconds to player position
           set playbackState to player state as string
-          return playbackState & "\t" & trackName & "\t" & artistName & "\t" & albumName & "\t" & durationSeconds & "\t" & positionSeconds
+          return playbackState & ASCII character 31 & trackName & ASCII character 31 & artistName & ASCII character 31 & albumName & ASCII character 31 & durationSeconds & ASCII character 31 & positionSeconds
         end tell
         """
 
@@ -149,11 +151,11 @@ enum SpotifyReader {
             throw SpotifyError.scriptFailed(errorText.isEmpty ? outputText : errorText)
         }
 
-        let fields = outputText.components(separatedBy: "\t")
+        let fields = outputText.components(separatedBy: fieldSeparator)
 
         guard fields.count == 6,
-              let duration = TimeInterval(fields[4]),
-              let position = TimeInterval(fields[5]) else {
+              let duration = parseAppleScriptNumber(fields[4]),
+              let position = parseAppleScriptNumber(fields[5]) else {
             throw SpotifyError.invalidSnapshot(outputText)
         }
 
@@ -165,6 +167,10 @@ enum SpotifyReader {
             duration: duration,
             position: position
         )
+    }
+
+    private static func parseAppleScriptNumber(_ value: String) -> TimeInterval? {
+        TimeInterval(value) ?? TimeInterval(value.replacingOccurrences(of: ",", with: "."))
     }
 
     private static var isSpotifyRunning: Bool {
