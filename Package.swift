@@ -8,6 +8,7 @@ let package = Package(
         .macOS(.v13)
     ],
     products: [
+        .executable(name: "cante", targets: ["CanteCLI"]),
         .executable(name: "cante-overlay", targets: ["CanteOverlay"]),
         .executable(name: "cante-lyrics", targets: ["CanteLyrics"]),
         .executable(name: "cante-spotify", targets: ["CanteSpotify"])
@@ -16,6 +17,11 @@ let package = Package(
         .target(
             name: "CanteCore",
             path: "Sources/CanteCore"
+        ),
+        .executableTarget(
+            name: "CanteCLI",
+            dependencies: ["CanteCore"],
+            path: "Sources/CanteCLI"
         ),
         .executableTarget(
             name: "CanteOverlay",

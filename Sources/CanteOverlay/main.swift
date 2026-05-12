@@ -12,6 +12,7 @@ struct OverlayMessage: Decodable {
 final class LyricsView: NSVisualEffectView {
     private let textLabel = NSTextField(labelWithString: "Cante")
     private let subtitleLabel = NSTextField(labelWithString: "Loading your lyrics")
+    private let closeButton = NSButton(title: "x", target: nil, action: nil)
     private var loadingTimer: Timer?
     private var loadingStep = 0
 
@@ -19,6 +20,7 @@ final class LyricsView: NSVisualEffectView {
         super.init(frame: frameRect)
         configureView()
         configureLabels()
+        configureCloseButton()
         configureLayout()
         startLoading()
     }
@@ -80,20 +82,40 @@ final class LyricsView: NSVisualEffectView {
         subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
     }
 
+    private func configureCloseButton() {
+        closeButton.target = self
+        closeButton.action = #selector(closeOverlay)
+        closeButton.bezelStyle = .circular
+        closeButton.font = .systemFont(ofSize: 12, weight: .bold)
+        closeButton.contentTintColor = NSColor.white.withAlphaComponent(0.78)
+        closeButton.toolTip = "Close Cante"
+        closeButton.translatesAutoresizingMaskIntoConstraints = false
+    }
+
     private func configureLayout() {
         addSubview(textLabel)
         addSubview(subtitleLabel)
+        addSubview(closeButton)
 
         NSLayoutConstraint.activate([
             textLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 28),
-            textLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -28),
+            textLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -58),
             textLabel.topAnchor.constraint(equalTo: topAnchor, constant: 22),
 
             subtitleLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 28),
-            subtitleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -28),
+            subtitleLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -58),
             subtitleLabel.topAnchor.constraint(equalTo: textLabel.bottomAnchor, constant: 8),
-            subtitleLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -18)
+            subtitleLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -18),
+
+            closeButton.topAnchor.constraint(equalTo: topAnchor, constant: 14),
+            closeButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -14),
+            closeButton.widthAnchor.constraint(equalToConstant: 24),
+            closeButton.heightAnchor.constraint(equalToConstant: 24)
         ])
+    }
+
+    @objc private func closeOverlay() {
+        NSApp.terminate(nil)
     }
 
     private func advanceLoadingText() {
@@ -150,7 +172,7 @@ final class OverlayController: NSObject, NSApplicationDelegate {
         window.backgroundColor = .clear
         window.isOpaque = false
         window.hasShadow = false
-        window.ignoresMouseEvents = true
+        window.ignoresMouseEvents = CommandLine.arguments.contains("--click-through")
         window.level = .screenSaver
         window.collectionBehavior = [
             .canJoinAllSpaces,

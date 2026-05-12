@@ -2,9 +2,28 @@
 
 Cante is an early macOS lyrics overlay prototype.
 
+## Quick Start
+
+```sh
+swift build
+.build/debug/cante run
+```
+
+Stop the overlay with the `x` button in the overlay UI, or from a terminal:
+
+```sh
+.build/debug/cante stop
+```
+
+Clear cached lyrics:
+
+```sh
+.build/debug/cante clear-cache
+```
+
 ## Current Prototype
 
-The first milestone is intentionally small: a Swift CLI that reads text from standard input and renders the latest line in a translucent, borderless, click-through floating window.
+The first milestone is intentionally small: a Swift CLI that reads text from standard input and renders the latest line in a translucent, borderless floating window.
 
 Run it with:
 
@@ -17,7 +36,7 @@ Then type a line and press Return. Each new line replaces the overlay text.
 Stop a running overlay from another terminal with:
 
 ```sh
-.build/debug/cante-overlay --stop
+.build/debug/cante stop
 ```
 
 `Ctrl-C` also works when the overlay is attached to your current terminal session.
@@ -84,7 +103,7 @@ Fetched LRCLIB results are cached locally in the user cache directory, so repeat
 Clear the lyrics cache with:
 
 ```sh
-swift run cante-lyrics --clear-cache
+.build/debug/cante clear-cache
 ```
 
 ## Manual Validation Checklist
