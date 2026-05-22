@@ -60,6 +60,8 @@ cante run
 
 By default Cante auto-selects the active source. Spotify is preferred when it is actively playing; otherwise Cante tries macOS Now Playing for browser-based players such as `music.youtube.com`.
 
+When using Spotify for the first time, macOS may ask for permission to let Cante control Spotify. Allow it so Cante can read the current track and playback position.
+
 To force browser-based YouTube Music through macOS Now Playing, run:
 
 ```sh
@@ -75,8 +77,6 @@ cante run --source spotify
 (If you installed manually, run `./cante run` from the unpacked folder.)
 
 By default `cante run` detaches into the background, returns your terminal, and writes output to `~/Library/Logs/cante.log`. The overlay supervisor pid is recorded in `/tmp/cante.pid`.
-
-The first time you run it, macOS may ask for permission to let Cante control Spotify. Allow it so Cante can read the current track and playback position.
 
 The overlay can be dragged around the screen. Close it with the `x` button, or from a terminal:
 
@@ -152,6 +152,7 @@ CLI flags override the config file, so you can keep persistent defaults and stil
 - Shows the current track while lyrics are loading.
 - Fades down when synced lyrics are not available for a song.
 - Caches LRCLIB synced lyrics locally so repeated songs load faster.
+- Auto-selects Spotify when it is actively playing, otherwise tries macOS Now Playing.
 - Floats above other windows and joins all Spaces.
 
 ## Build From Source
@@ -259,7 +260,7 @@ swift build
 swift run cante-lyrics --track "ERROR" --artist "The Warning" | .build/debug/cante-overlay
 ```
 
-This does not know Spotify playback position yet. It treats command start as song start, which is enough to validate timestamp parsing and overlay updates. For faster visual testing, skip directly to the first lyric:
+This does not know any player playback position. It treats command start as song start, which is enough to validate timestamp parsing and overlay updates. For faster visual testing, skip directly to the first lyric:
 
 ```sh
 swift run cante-lyrics --track "ERROR" --artist "The Warning" --skip-intro true | .build/debug/cante-overlay
@@ -288,6 +289,12 @@ For troubleshooting:
 
 This requires the Spotify desktop app to be running. macOS may ask for permission to let Cante control Spotify.
 
+You can also check whether Cante sees Spotify as actively playing:
+
+```sh
+.build/debug/cante-spotify --probe
+```
+
 ## macOS Now Playing Sync
 
 `cante-now-playing` reads the current macOS Now Playing item through the private MediaRemote framework. This can work with browser-based players such as YouTube Music when the browser publishes media metadata to macOS Control Center.
@@ -305,7 +312,19 @@ Or through the top-level CLI, forcing this source:
 
 Because this uses a private macOS framework, it may break on future macOS releases or behave differently across browsers. If macOS reports only generic video metadata, Cante will not be able to fetch matched LRCLIB lyrics.
 
-The overlay shows a loading state while lyrics are being fetched or Spotify is not actively playing. Once lyrics are available, it shows the current line and the next line underneath.
+To inspect the raw metadata Cante can see from macOS Now Playing:
+
+```sh
+.build/debug/cante-now-playing --dump
+```
+
+You can also check whether Cante sees macOS Now Playing as actively playing:
+
+```sh
+.build/debug/cante-now-playing --probe
+```
+
+The overlay shows a loading state while lyrics are being fetched or the selected source is not actively playing. Once lyrics are available, it shows the current line and the next line underneath.
 
 Fetched LRCLIB results are cached locally in the user cache directory, so repeated tracks avoid another network request.
 
