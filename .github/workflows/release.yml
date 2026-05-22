@@ -37,6 +37,7 @@ jobs:
           cp .build/release/cante "$DIST_DIR/"
           cp .build/release/cante-overlay "$DIST_DIR/"
           cp .build/release/cante-spotify "$DIST_DIR/"
+          cp .build/release/cante-now-playing "$DIST_DIR/"
           cp .build/release/cante-lyrics "$DIST_DIR/"
           cp README.md LICENSE "$DIST_DIR/"
 
@@ -46,7 +47,7 @@ jobs:
           The binaries are not notarized, so macOS Gatekeeper will block them on first launch. Remove the quarantine flag once from this folder:
 
           ```sh
-          xattr -dr com.apple.quarantine cante cante-overlay cante-spotify cante-lyrics
+          xattr -dr com.apple.quarantine cante cante-overlay cante-spotify cante-now-playing cante-lyrics
           ```
 
           Run Cante from this folder:
@@ -67,7 +68,7 @@ jobs:
           ./cante clear-cache
           ```
 
-          Keep `cante`, `cante-overlay`, `cante-spotify`, and `cante-lyrics` together in the same folder.
+          Keep `cante`, `cante-overlay`, `cante-spotify`, `cante-now-playing`, and `cante-lyrics` together in the same folder.
           EOF
 
           tar -czf "${DIST_DIR}.tar.gz" "$DIST_DIR"

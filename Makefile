@@ -100,6 +100,8 @@ release:
 		-e "s|/releases/download/v[0-9]+\.[0-9]+\.[0-9]+/cante-v[0-9]+\.[0-9]+\.[0-9]+-|/releases/download/$$TAG/cante-$$TAG-|g" \
 		-e "s|^  version \"[0-9]+\.[0-9]+\.[0-9]+\"|  version \"$(VERSION)\"|" \
 		-e "s|^  sha256 \"[a-f0-9]{64}\"|  sha256 \"$$SHA\"|" \
+		-e "s|^  desc \"Spotify lyrics overlay for macOS\"|  desc \"Lyrics overlay for Spotify and macOS Now Playing\"|" \
+		-e "s|bin.install \"cante\", \"cante-overlay\", \"cante-spotify\", \"cante-lyrics\"|bin.install \"cante\", \"cante-overlay\", \"cante-spotify\", \"cante-now-playing\", \"cante-lyrics\"|" \
 		"$$FORMULA"; \
 	rm -f "$$FORMULA.bak"; \
 	if ! grep -q "version \"$(VERSION)\"" "$$FORMULA"; then \
@@ -110,6 +112,9 @@ release:
 	fi; \
 	if ! grep -q "/releases/download/$$TAG/cante-$$TAG-" "$$FORMULA"; then \
 		echo "ERROR: url replacement in $$FORMULA failed"; exit 1; \
+	fi; \
+	if ! grep -q "cante-now-playing" "$$FORMULA"; then \
+		echo "ERROR: cante-now-playing missing from $$FORMULA"; exit 1; \
 	fi; \
 	git add "$$FORMULA"; \
 	git commit -m "Bump cante to $(VERSION)"; \

@@ -2,7 +2,7 @@
 
 *Pronounced /ˈkɐ̃tʃi/ ("KAHN-chee") — Portuguese for "sing!" (imperative of *cantar*).*
 
-Cante shows the current Spotify lyric line in a floating macOS desktop overlay, with the next line underneath.
+Cante shows the current lyric line from Spotify or macOS Now Playing in a floating macOS desktop overlay, with the next line underneath.
 
 ![Cante overlay demo](docs/demo.gif)
 
@@ -38,23 +38,38 @@ Keep the included binaries together in the same folder:
 cante
 cante-overlay
 cante-spotify
+cante-now-playing
 cante-lyrics
 ```
 
 The manual-download binaries are not notarized, so macOS Gatekeeper blocks them by default with a "cannot be opened because the developer cannot be verified" message. Remove the quarantine flag once after unpacking:
 
 ```sh
-xattr -dr com.apple.quarantine cante cante-overlay cante-spotify cante-lyrics
+xattr -dr com.apple.quarantine cante cante-overlay cante-spotify cante-now-playing cante-lyrics
 ```
 
 Run this from inside the unpacked release folder. After that the binaries launch normally. Homebrew installs do not need this step.
 
 ## Run Cante
 
-Start Spotify, play a song, then run:
+Start Spotify or a browser player that appears in macOS Now Playing, then run:
 
 ```sh
 cante run
+```
+
+By default Cante auto-selects the active source. Spotify is preferred when it is actively playing; otherwise Cante tries macOS Now Playing for browser-based players such as `music.youtube.com`.
+
+To force browser-based YouTube Music through macOS Now Playing, run:
+
+```sh
+cante run --source now-playing
+```
+
+To force Spotify, run:
+
+```sh
+cante run --source spotify
 ```
 
 (If you installed manually, run `./cante run` from the unpacked folder.)
@@ -79,6 +94,12 @@ Clear cached lyrics:
 
 ```sh
 cante clear-cache
+```
+
+Check the installed version:
+
+```sh
+cante --version
 ```
 
 Run with debug logs:
@@ -266,6 +287,23 @@ For troubleshooting:
 ```
 
 This requires the Spotify desktop app to be running. macOS may ask for permission to let Cante control Spotify.
+
+## macOS Now Playing Sync
+
+`cante-now-playing` reads the current macOS Now Playing item through the private MediaRemote framework. This can work with browser-based players such as YouTube Music when the browser publishes media metadata to macOS Control Center.
+
+```sh
+swift build
+.build/debug/cante-now-playing | .build/debug/cante-overlay
+```
+
+Or through the top-level CLI, forcing this source:
+
+```sh
+.build/debug/cante run --source now-playing --foreground --debug
+```
+
+Because this uses a private macOS framework, it may break on future macOS releases or behave differently across browsers. If macOS reports only generic video metadata, Cante will not be able to fetch matched LRCLIB lyrics.
 
 The overlay shows a loading state while lyrics are being fetched or Spotify is not actively playing. Once lyrics are available, it shows the current line and the next line underneath.
 

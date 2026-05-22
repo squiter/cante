@@ -49,6 +49,15 @@ struct CanteSpotify {
     static func main() async {
         let pollInterval = argumentValue("poll-interval").flatMap(TimeInterval.init) ?? 0.5
         let printsDebug = CommandLine.arguments.contains("--debug")
+
+        if CommandLine.arguments.contains("--probe") {
+            do {
+                Foundation.exit(try SpotifyReader.currentSnapshot().isPlaying ? 0 : 1)
+            } catch {
+                Foundation.exit(1)
+            }
+        }
+
         var currentTrackKey: String?
         var lines: [LyricLine] = []
         var lastStatusMessage: String?

@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-05-22
+
+### Added
+
+- Experimental macOS Now Playing source via `cante run --source now-playing`, intended for browser-based players such as YouTube Music when they publish media metadata to Control Center.
+- `cante run` now auto-selects the active music source by probing Spotify first and then macOS Now Playing.
+- `cante --version` / `cante -v` command for checking the running version.
+
 ## [0.3.2] - 2026-05-12
 
 ### Changed

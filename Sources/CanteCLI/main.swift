@@ -7,10 +7,17 @@ struct CanteCLI {
     private static var childProcesses: [Process] = []
     private static var signalSources: [DispatchSourceSignal] = []
     private static let supervisorPidPath = "/tmp/cante.pid"
+    private static let version = "0.4.0"
 
     static func main() {
         do {
             let firstArgument = CommandLine.arguments.dropFirst().first
+            let versionFlags: Set<String> = ["version", "--version", "-v"]
+            if firstArgument.map(versionFlags.contains) == true {
+                print("cante \(version)")
+                return
+            }
+
             let helpFlags: Set<String> = ["help", "--help", "-h"]
             let isHelp = firstArgument.map(helpFlags.contains) ?? false
             let looksLikeFlag = !isHelp && (firstArgument?.hasPrefix("-") == true)
@@ -25,7 +32,7 @@ struct CanteCLI {
                 let foreground = runArguments.contains(where: foregroundFlags.contains)
                 let cleanedArguments = runArguments.filter { !foregroundFlags.contains($0) }
                 if foreground {
-                    try runSpotifyOverlay(arguments: cleanedArguments)
+                    try runOverlay(arguments: cleanedArguments)
                 } else {
                     try daemonize(arguments: cleanedArguments)
                 }
@@ -76,20 +83,22 @@ struct CanteCLI {
         print("Stop:  cante stop")
     }
 
-    private static func runSpotifyOverlay(arguments: [String]) throws {
+    private static func runOverlay(arguments: [String]) throws {
         if isatty(STDIN_FILENO) == 0 {
             _ = Darwin.setsid()
         }
 
-        let spotify = Process()
+        let source = Process()
         let overlay = Process()
         let pipe = Pipe()
         let debug = arguments.contains("--debug")
+        let sourceName = sourceArgument(from: arguments)
+        let sourceExecutable = executableName(forSource: sourceName, debug: debug)
 
-        spotify.executableURL = executableURL(named: "cante-spotify")
-        spotify.arguments = debug ? ["--debug"] : []
-        spotify.standardOutput = pipe
-        spotify.standardError = FileHandle.standardError
+        source.executableURL = executableURL(named: sourceExecutable)
+        source.arguments = debug ? ["--debug"] : []
+        source.standardOutput = pipe
+        source.standardError = FileHandle.standardError
 
         overlay.executableURL = executableURL(named: "cante-overlay")
         overlay.arguments = overlayArguments(from: arguments, debug: debug)
@@ -98,9 +107,9 @@ struct CanteCLI {
 
         installSignalHandlers()
 
-        childProcesses = [spotify, overlay]
+        childProcesses = [source, overlay]
         try overlay.run()
-        try spotify.run()
+        try source.run()
 
         overlay.waitUntilExit()
         terminateChildren()
@@ -171,6 +180,73 @@ struct CanteCLI {
         return result
     }
 
+    private static func sourceArgument(from arguments: [String]) -> String {
+        var index = 0
+        while index < arguments.count {
+            let argument = arguments[index]
+
+            if argument == "--source", let value = arguments[safe: index + 1] {
+                return value
+            }
+
+            if argument.hasPrefix("--source=") {
+                return String(argument.dropFirst("--source=".count))
+            }
+
+            index += 1
+        }
+
+        return "auto"
+    }
+
+    private static func executableName(forSource source: String, debug: Bool) -> String {
+        switch source {
+        case "now-playing", "nowplaying", "youtube-music", "youtube", "ytm":
+            return "cante-now-playing"
+        case "auto":
+            return autoSourceExecutable(debug: debug)
+        default:
+            return "cante-spotify"
+        }
+    }
+
+    private static func autoSourceExecutable(debug: Bool) -> String {
+        if sourceIsPlaying("cante-spotify") {
+            if debug {
+                fputs("cante: selected source spotify\n", stderr)
+            }
+            return "cante-spotify"
+        }
+
+        if sourceIsPlaying("cante-now-playing") {
+            if debug {
+                fputs("cante: selected source now-playing\n", stderr)
+            }
+            return "cante-now-playing"
+        }
+
+        if debug {
+            fputs("cante: no active source detected; falling back to spotify\n", stderr)
+        }
+        return "cante-spotify"
+    }
+
+    private static func sourceIsPlaying(_ executableName: String) -> Bool {
+        let process = Process()
+        process.executableURL = executableURL(named: executableName)
+        process.arguments = ["--probe"]
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+
+        do {
+            try process.run()
+            process.waitUntilExit()
+            return process.terminationStatus == 0
+        } catch {
+            return false
+        }
+    }
+
     private static func runSiblingExecutable(_ name: String, arguments: [String]) throws {
         let process = Process()
         process.executableURL = executableURL(named: name)
@@ -212,24 +288,29 @@ struct CanteCLI {
         print(
             """
             Usage:
-              cante run [--foreground|-f] [--debug] [--click-through]
+              cante run [--foreground|-f] [--source auto|spotify|now-playing]
+                        [--debug] [--click-through]
                         [--text-shadow|--no-text-shadow]
                         [--opaque|--no-opaque]
                         [--size small|medium|large]
                         [--single-line|--no-single-line]
               cante stop
               cante clear-cache
+              cante --version
 
             Commands:
-              run          Start Spotify-synced lyrics in the overlay.
+              run          Start synced lyrics in the overlay.
                            Detaches by default; output goes to
                            ~/Library/Logs/cante.log. Pass --foreground / -f to
                            keep cante in the current terminal (Ctrl-C stops it).
               stop         Stop the running overlay (and the background
                            supervisor, if there is one).
               clear-cache  Remove cached LRCLIB lyrics.
+              --version    Print the cante version.
 
             Overlay options:
+              --source <name>                    Music source: auto (default),
+                                                 spotify, or now-playing.
               --text-shadow / --no-text-shadow   Toggle the dark halo around lyric text.
               --opaque      / --no-opaque        Toggle the opaque dark backdrop.
               --size <preset>                    Scale the overlay (small, medium, large).

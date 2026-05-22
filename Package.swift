@@ -11,7 +11,8 @@ let package = Package(
         .executable(name: "cante", targets: ["CanteCLI"]),
         .executable(name: "cante-overlay", targets: ["CanteOverlay"]),
         .executable(name: "cante-lyrics", targets: ["CanteLyrics"]),
-        .executable(name: "cante-spotify", targets: ["CanteSpotify"])
+        .executable(name: "cante-spotify", targets: ["CanteSpotify"]),
+        .executable(name: "cante-now-playing", targets: ["CanteNowPlaying"])
     ],
     targets: [
         .target(
@@ -36,6 +37,11 @@ let package = Package(
             name: "CanteSpotify",
             dependencies: ["CanteCore"],
             path: "Sources/CanteSpotify"
+        ),
+        .executableTarget(
+            name: "CanteNowPlaying",
+            dependencies: ["CanteCore"],
+            path: "Sources/CanteNowPlaying"
         )
     ]
 )
